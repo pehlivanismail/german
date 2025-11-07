@@ -97,7 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           provider: 'google',
           options: origin
             ? {
-                redirectTo: `${origin}/auth/callback`,
+                redirectTo: `${origin}/levels`,
               }
             : undefined,
         })
