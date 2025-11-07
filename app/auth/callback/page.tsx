@@ -8,6 +8,7 @@ export default function AuthCallbackPage() {
   const router = useRouter()
   const { refreshSession } = useAuth()
   const [error, setError] = useState<string | null>(null)
+  const [hasRedirected, setHasRedirected] = useState(false)
 
   useEffect(() => {
     let isMounted = true
@@ -18,14 +19,20 @@ export default function AuthCallbackPage() {
 
         const redirectToLevels = async () => {
           await refreshSession()
-          if (isMounted) {
-            router.replace('/levels')
-            setTimeout(() => {
-              if (window.location.pathname !== '/levels') {
-                window.location.assign('/levels')
-              }
-            }, 300)
-          }
+          if (!isMounted || hasRedirected) return
+          setHasRedirected(true)
+          const target = '/levels'
+          router.replace(target)
+          setTimeout(() => {
+            if (window.location.pathname !== target) {
+              window.location.replace(target)
+            }
+          }, 100)
+          setTimeout(() => {
+            if (window.location.pathname !== target) {
+              window.location.href = target
+            }
+          }, 400)
         }
 
         const url = window.location.href
