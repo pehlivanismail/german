@@ -12,107 +12,74 @@ export default function AuthCallbackPage() {
 
   useEffect(() => {
     let isMounted = true
+    let timeoutId: ReturnType<typeof setTimeout> | null = null
+    let unsubscribe: (() => void) | null = null
+
+    const redirectToLevels = async () => {
+      if (!isMounted || hasRedirected) return
+      setHasRedirected(true)
+      try {
+        await refreshSession()
+      } catch (refreshError) {
+        console.error('[Auth Callback] refreshSession error', refreshError)
+      }
+      window.location.href = '/levels'
+    }
 
     const handleCallback = async () => {
       try {
         const supabase = getBrowserSupabaseClient()
 
-        const redirectToLevels = async () => {
-          if (!isMounted || hasRedirected) return
-          setHasRedirected(true)
-          try {
-            await refreshSession()
-          } catch (refreshError) {
-            console.error('[Auth Callback] refreshSession error', refreshError)
-          } finally {
-            const target = '/levels'
-            window.location.replace(target)
-          }
-        }
-
         const url = window.location.href
-        const hasQueryCode = url.includes('code=')
         const hash = window.location.hash || ''
+        const hasQueryCode = url.includes('code=')
         const hasHashTokens = /access_token=/.test(hash)
 
-        console.log('[Auth Callback] start', { url, hash, hasQueryCode, hasHashTokens })
-
-        const pollForSession = (attempt = 0) => {
-          if (hasRedirected) {
-            return
-          }
-          supabase.auth
-            .getSession()
-            .then(({ data: { session } }) => {
-              console.log('[Auth Callback] poll session', attempt, session)
-              if (session) {
-                redirectToLevels()
-              } else if (attempt < 20) {
-                setTimeout(() => pollForSession(attempt + 1), 200)
-              } else if (isMounted) {
-                setError('Authentication failed. Please sign in again.')
-                router.replace('/auth/signin')
-              }
-            })
-            .catch((err) => {
-              console.error('[Auth Callback] poll error', err)
-              if (isMounted) {
-                setError(err?.message || 'Authentication failed. Please try signing in again.')
-              }
-            })
-        }
-
-        if (!hasQueryCode && !hasHashTokens) {
-          pollForSession()
+        if (hasQueryCode) {
+          const { error } = await supabase.auth.exchangeCodeForSession(url)
+          if (error) throw error
+          await redirectToLevels()
           return
         }
 
-        let sessionError: { message: string } | null = null
-        let finalSession = null
-
-        if (hasQueryCode) {
-          const { data, error } = await supabase.auth.exchangeCodeForSession(url)
-          sessionError = error ? { message: error.message } : null
-          finalSession = data?.session ?? null
-          console.log('[Auth Callback] exchangeCodeForSession result', { error, session: data?.session })
-        } else if (hasHashTokens) {
+        if (hasHashTokens) {
           const params = new URLSearchParams(hash.replace(/^#/, ''))
           const accessToken = params.get('access_token')
           const refreshToken = params.get('refresh_token')
 
-          const { data, error: setError } = await supabase.auth.setSession({
+          const { error } = await supabase.auth.setSession({
             access_token: accessToken || '',
             refresh_token: refreshToken || '',
           })
-          sessionError = setError ? { message: setError.message } : null
-          finalSession = data?.session ?? null
-          if (!setError) {
-            window.history.replaceState(null, '', window.location.pathname)
+
+          if (error) throw error
+          window.history.replaceState(null, '', window.location.pathname)
+          await redirectToLevels()
+          return
+        }
+
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
+
+        if (session) {
+          await redirectToLevels()
+          return
+        }
+
+        const { data } = supabase.auth.onAuthStateChange((_event, newSession) => {
+          if (newSession) {
+            redirectToLevels()
           }
-          console.log('[Auth Callback] setSession result', { error: setError, session: data?.session })
-        }
+        })
 
-        if (sessionError) {
-          console.error('Failed to process auth callback:', sessionError)
-          if (isMounted) setError(sessionError.message)
-          return
-        }
+        unsubscribe = () => data.subscription.unsubscribe()
 
-        if (!finalSession) {
-          const {
-            data: { session },
-          } = await supabase.auth.getSession()
-          finalSession = session
-          console.log('[Auth Callback] session after fallback getSession', session)
-        }
-
-        if (!finalSession) {
-          pollForSession()
-          return
-        }
-
-        await redirectToLevels()
-        console.log('[Auth Callback] redirected with session', finalSession)
+        timeoutId = setTimeout(() => {
+          if (!hasRedirected) {
+            redirectToLevels()
+          }
+        }, 2000)
       } catch (err: any) {
         console.error('Unexpected error handling auth callback:', err)
         if (isMounted) {
@@ -125,8 +92,14 @@ export default function AuthCallbackPage() {
 
     return () => {
       isMounted = false
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
+      if (unsubscribe) {
+        unsubscribe()
+      }
     }
-  }, [refreshSession, router])
+  }, [hasRedirected, refreshSession])
 
   if (error) {
     return (
