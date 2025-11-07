@@ -20,6 +20,11 @@ export default function AuthCallbackPage() {
           await refreshSession()
           if (isMounted) {
             router.replace('/levels')
+            setTimeout(() => {
+              if (window.location.pathname !== '/levels') {
+                window.location.assign('/levels')
+              }
+            }, 300)
           }
         }
 
