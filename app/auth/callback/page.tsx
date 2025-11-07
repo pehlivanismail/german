@@ -18,21 +18,16 @@ export default function AuthCallbackPage() {
         const supabase = getBrowserSupabaseClient()
 
         const redirectToLevels = async () => {
-          await refreshSession()
           if (!isMounted || hasRedirected) return
           setHasRedirected(true)
-          const target = '/levels'
-          router.replace(target)
-          setTimeout(() => {
-            if (window.location.pathname !== target) {
-              window.location.replace(target)
-            }
-          }, 100)
-          setTimeout(() => {
-            if (window.location.pathname !== target) {
-              window.location.href = target
-            }
-          }, 400)
+          try {
+            await refreshSession()
+          } catch (refreshError) {
+            console.error('[Auth Callback] refreshSession error', refreshError)
+          } finally {
+            const target = '/levels'
+            window.location.replace(target)
+          }
         }
 
         const url = window.location.href
@@ -43,6 +38,9 @@ export default function AuthCallbackPage() {
         console.log('[Auth Callback] start', { url, hash, hasQueryCode, hasHashTokens })
 
         const pollForSession = (attempt = 0) => {
+          if (hasRedirected) {
+            return
+          }
           supabase.auth
             .getSession()
             .then(({ data: { session } }) => {
