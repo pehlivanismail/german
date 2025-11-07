@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getLevelsProgress } from '@/lib/db-supabase'
 import { getUserIdFromRequest } from '@/lib/supabase-api'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization')

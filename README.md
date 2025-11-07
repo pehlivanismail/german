@@ -28,7 +28,7 @@ The app supports both in-memory storage (default) and PostgreSQL database. For p
 
 1. Create a project at [Supabase](https://supabase.com)
 2. Get your connection string from Supabase Dashboard
-3. Run the migration:
+3. Run the migration: 
    - Go to SQL Editor in Supabase Dashboard
    - Copy contents of `database/migrations/001_initial_schema.sql`
    - Run the SQL script
