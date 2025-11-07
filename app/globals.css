@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Ensure inputs are interactive */
+input[type="text"],
+input[type="email"],
+input[type="password"] {
+  pointer-events: auto !important;
+  -webkit-user-select: text !important;
+  user-select: text !important;
+  color: #111827 !important;
+  background-color: #ffffff !important;
+}
+
+input:disabled {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+body {
+  @apply bg-white text-gray-900;
+}
+
