@@ -154,10 +154,22 @@ export async function updateProgress(
   questionId: string,
   isCorrect: boolean,
   answer?: string,
-  unitId?: string,
-  categoryId?: string
 ): Promise<{ success: boolean; error?: any }> {
   const supabase = getSupabaseAdmin()
+
+  const { data: questionMeta, error: questionMetaError } = await supabase
+    .from('questions')
+    .select('unit_id, category_id')
+    .eq('id', questionId)
+    .maybeSingle()
+
+  if (questionMetaError) {
+    console.error('Error fetching question metadata:', questionMetaError)
+    return { success: false, error: questionMetaError }
+  }
+
+  const resolvedUnitId = questionMeta?.unit_id ?? null
+  const resolvedCategoryId = questionMeta?.category_id ?? null
 
   const { data: existing } = await supabase
     .from('user_progress')
@@ -178,6 +190,8 @@ export async function updateProgress(
         attempts: existing.attempts + 1,
         last_attempted: now,
         last_answer: answer || existing.last_answer,
+        unit_id: resolvedUnitId ?? existing.unit_id ?? null,
+        category_id: resolvedCategoryId ?? existing.category_id ?? null,
       })
       .eq('user_id', userId)
       .eq('question_id', questionId)
@@ -198,8 +212,8 @@ export async function updateProgress(
   const { error: insertError } = await supabase.from('user_progress').insert({
     user_id: userId,
     question_id: questionId,
-    unit_id: unitId || null,
-    category_id: categoryId || null,
+    unit_id: resolvedUnitId,
+    category_id: resolvedCategoryId,
     status: isCorrect ? 'passed' : 'failed',
     attempts: 1,
     last_attempted: now,
