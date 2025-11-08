@@ -35,6 +35,14 @@ export default function QuizPage() {
   const inputRef = useRef<HTMLInputElement>(null)
   const [quizMode, setQuizMode] = useState<'focus_failed' | 'review_all'>('focus_failed')
 
+  const normalizeAnswer = (value: string) =>
+    value
+      .trim()
+      .toLowerCase()
+      .normalize('NFC')
+      .replace(/[’‘`´]/g, "'")
+      .replace(/\s+/g, ' ')
+
   // Calculate stats from ALL questions, not just filtered ones
   const progressStats = {
     passed: allQuestions.filter((q) => q.status === 'passed').length,
@@ -140,8 +148,8 @@ export default function QuizPage() {
     if (!answer.trim()) return
 
     const currentQuestion = questions[currentIndex]
-    const normalizedAnswer = answer.trim().toLowerCase().replace(/\s+/g, ' ')
-    const normalizedCorrect = currentQuestion.correctAnswer.trim().toLowerCase().replace(/\s+/g, ' ')
+    const normalizedAnswer = normalizeAnswer(answer)
+    const normalizedCorrect = normalizeAnswer(currentQuestion.correctAnswer || '')
     const isCorrect = normalizedAnswer === normalizedCorrect
 
     try {
