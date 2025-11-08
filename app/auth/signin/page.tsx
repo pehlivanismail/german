@@ -2,9 +2,11 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth-supabase'
 
 export default function SignInPage() {
+  const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -18,6 +20,7 @@ export default function SignInPage() {
 
     try {
       await signIn(email, password)
+      router.push('/levels')
     } catch (err: any) {
       setError(err.message || 'Failed to sign in')
     } finally {

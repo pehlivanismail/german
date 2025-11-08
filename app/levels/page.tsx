@@ -20,6 +20,7 @@ export default function LevelsPage() {
   const [levels, setLevels] = useState<LevelProgress[]>([])
   const [loading, setLoading] = useState(true)
   const [activeGroup, setActiveGroup] = useState<string | null>(null)
+  const [signingOut, setSigningOut] = useState(false)
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -217,6 +218,18 @@ export default function LevelsPage() {
     }
   }
 
+  const handleSignOut = async () => {
+    try {
+      setSigningOut(true)
+      await signOut()
+      router.replace('/auth/signin')
+    } catch (error) {
+      console.error('Failed to sign out:', error)
+    } finally {
+      setSigningOut(false)
+    }
+  }
+
   if (authLoading || loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -226,33 +239,34 @@ export default function LevelsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 py-8 px-4 sm:py-10">
       <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-800">Select Your Level</h1>
-          <div className="flex gap-4 items-center">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-8">
+          <h1 className="text-3xl font-bold text-gray-800 sm:text-4xl">Select Your Level</h1>
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center md:justify-end">
             <button
               onClick={fetchLevels}
-              className="px-4 py-2 bg-primary-100 text-primary-700 rounded-lg hover:bg-primary-200 transition-colors flex items-center gap-2"
+              className="flex items-center justify-center gap-2 rounded-lg bg-primary-100 px-4 py-2 text-primary-700 transition-colors hover:bg-primary-200"
               title="Refresh Progress"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
               Refresh
             </button>
-            <span className="text-gray-600">Welcome, {user?.email}</span>
+            <span className="text-center text-gray-600 sm:text-left">Welcome, {user?.email}</span>
             <button
-              onClick={signOut}
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+              onClick={handleSignOut}
+              disabled={signingOut}
+              className="rounded-lg bg-gray-200 px-4 py-2 text-gray-700 transition-colors hover:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-70"
             >
-              Sign Out
+              {signingOut ? 'Signing out…' : 'Sign Out'}
             </button>
           </div>
         </div>
 
         {groupNames.length > 0 && (
-          <div className="mb-6 flex flex-wrap gap-3">
+          <div className="mb-6 flex gap-3 overflow-x-auto pb-2 -mx-2 px-2 sm:mx-0 sm:px-0 sm:flex-wrap sm:overflow-visible">
             {groupNames.map((group) => {
               const summary = (groupedLevels[group] || []).reduce(
                 (acc, level) => {
@@ -270,10 +284,10 @@ export default function LevelsPage() {
                 <button
                   key={group}
                   onClick={() => setActiveGroup(group)}
-                  className={`px-5 py-2 rounded-full text-sm font-medium transition-colors ${
+                  className={`whitespace-nowrap rounded-full px-5 py-2 text-sm font-medium transition-colors ${
                     activeGroup === group
                       ? 'bg-primary-600 text-white shadow-md'
-                      : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
+                      : 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-100'
                   }`}
                 >
                   {group} ({groupPercentage}%)
@@ -283,7 +297,7 @@ export default function LevelsPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 xl:grid-cols-3">
           {visibleLevels.map((level) => {
             const progress = levels.find((l) => l.level === level.level) || {
               level: level.level,
@@ -295,7 +309,10 @@ export default function LevelsPage() {
             }
 
             return (
-              <div key={level.level} className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+              <div
+                key={level.level}
+                className="rounded-lg bg-white p-5 shadow-md transition-shadow hover:shadow-lg sm:p-6"
+              >
                 <div className="flex justify-between items-start mb-4">
                   <h2 className="text-2xl font-semibold text-gray-800">{level.level}</h2>
                   <span className="text-sm text-gray-500">
