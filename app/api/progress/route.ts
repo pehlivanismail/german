@@ -10,13 +10,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
     }
 
-    const { questionId, answer, isCorrect, unitId, categoryId } = await request.json()
+    const { questionId, answer, isCorrect } = await request.json()
 
     if (!questionId || typeof isCorrect !== 'boolean') {
       return NextResponse.json({ message: 'Invalid request data' }, { status: 400 })
     }
 
-    const result = await updateProgress(userId, questionId, isCorrect, answer, unitId, categoryId)
+    const result = await updateProgress(userId, questionId, isCorrect, answer)
 
     if (!result.success) {
       console.error('Progress update failed:', result.error)

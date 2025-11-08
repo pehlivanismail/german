@@ -170,8 +170,6 @@ export default function QuizPage() {
           questionId: currentQuestion.id,
           answer: answer.trim(),
           isCorrect,
-          unitId: currentQuestion.level || level,
-          categoryId: currentQuestion.categoryId || 'vocabulary',
         }),
       })
 
