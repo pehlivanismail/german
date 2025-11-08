@@ -49,6 +49,7 @@ export async function getQuestionsByLevel(userId: string, level: string) {
     .select('question_id, status, attempts')
     .eq('user_id', userId)
     .in('question_id', questionIds)
+    .eq('category_id', questions[0].category_id || null)
 
   if (progressError) {
     throw progressError
