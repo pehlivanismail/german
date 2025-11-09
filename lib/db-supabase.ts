@@ -160,6 +160,7 @@ export async function getLevelsProgress(userId: string): Promise<LevelProgress[]
 
   const questionToLevel = new Map<string, string>()
   for (const question of questions || []) {
+    if (!question.unit_id) continue
     questionToLevel.set(question.id, question.unit_id)
   }
 
