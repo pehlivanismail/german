@@ -13,7 +13,8 @@
     "reimport:vocabulary": "tsx scripts/reimport-vocabulary.ts",
     "fix:answers": "tsx scripts/fix-correct-answers.ts",
     "progress:reset": "tsx scripts/reset-progress.ts",
-    "progress:seed": "tsx scripts/seed-progress.ts"
+    "progress:seed": "tsx scripts/seed-progress.ts",
+    "debug:levels": "tsx scripts/debug-levels.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.7.0",
