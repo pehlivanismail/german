@@ -56,7 +56,8 @@ async function main() {
 
   if (!userId) {
     const { data: authUser, error: authUserError } = await supabase
-      .from('users', { schema: 'auth' })
+      .schema('auth')
+      .from('users')
       .select('id')
       .eq('email', email)
       .maybeSingle()
