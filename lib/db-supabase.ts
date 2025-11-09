@@ -84,12 +84,30 @@ export async function getQuestionsByLevel(userId: string, level: string) {
 export async function getLevelsProgress(userId: string): Promise<LevelProgress[]> {
   const supabase = getSupabaseAdmin()
 
-  const { data: questions, error: questionError } = await supabase
-    .from('questions')
-    .select('id, unit_id')
+  const questions: { id: string; unit_id: string | null }[] = []
+  const pageSize = 1000
+  let questionPage = 0
+  while (true) {
+    const from = questionPage * pageSize
+    const to = from + pageSize - 1
+    const { data, error } = await supabase
+      .from('questions')
+      .select('id, unit_id')
+      .range(from, to)
 
-  if (questionError) {
-    throw questionError
+    if (error) {
+      throw error
+    }
+
+    if (data && data.length > 0) {
+      questions.push(...data)
+    }
+
+    if (!data || data.length < pageSize) {
+      break
+    }
+
+    questionPage += 1
   }
 
   const levelMap = new Map<string, LevelProgress>()
@@ -114,13 +132,30 @@ export async function getLevelsProgress(userId: string): Promise<LevelProgress[]
     return []
   }
 
-  const { data: progressRows, error: progressError } = await supabase
-    .from('user_progress')
-    .select('question_id, status')
-    .eq('user_id', userId)
+  const progressRows: { question_id: string; status: string | null }[] = []
+  let progressPage = 0
+  while (true) {
+    const from = progressPage * pageSize
+    const to = from + pageSize - 1
+    const { data, error } = await supabase
+      .from('user_progress')
+      .select('question_id, status')
+      .eq('user_id', userId)
+      .range(from, to)
 
-  if (progressError) {
-    throw progressError
+    if (error) {
+      throw error
+    }
+
+    if (data && data.length > 0) {
+      progressRows.push(...data)
+    }
+
+    if (!data || data.length < pageSize) {
+      break
+    }
+
+    progressPage += 1
   }
 
   const questionToLevel = new Map<string, string>()
@@ -128,7 +163,7 @@ export async function getLevelsProgress(userId: string): Promise<LevelProgress[]
     questionToLevel.set(question.id, question.unit_id)
   }
 
-  for (const row of progressRows || []) {
+  for (const row of progressRows) {
     const level = questionToLevel.get(row.question_id)
     if (!level) continue
     const entry = levelMap.get(level)
