@@ -84,12 +84,30 @@ export async function getQuestionsByLevel(userId: string, level: string) {
 export async function getLevelsProgress(userId: string): Promise<LevelProgress[]> {
   const supabase = getSupabaseAdmin()
 
-  const { data: questions, error: questionError } = await supabase
-    .from('questions')
-    .select('id, unit_id')
+  const questions: { id: string; unit_id: string | null }[] = []
+  const pageSize = 1000
+  let questionPage = 0
+  while (true) {
+    const from = questionPage * pageSize
+    const to = from + pageSize - 1
+    const { data, error } = await supabase
+      .from('questions')
+      .select('id, unit_id')
+      .range(from, to)
 
-  if (questionError) {
-    throw questionError
+    if (error) {
+      throw error
+    }
+
+    if (data && data.length > 0) {
+      questions.push(...data)
+    }
+
+    if (!data || data.length < pageSize) {
+      break
+    }
+
+    questionPage += 1
   }
 
   const levelMap = new Map<string, LevelProgress>()
@@ -114,13 +132,30 @@ export async function getLevelsProgress(userId: string): Promise<LevelProgress[]
     return []
   }
 
-  const { data: progressRows, error: progressError } = await supabase
-    .from('user_progress')
-    .select('question_id, status')
-    .eq('user_id', userId)
+  const progressRows: { question_id: string; status: string | null }[] = []
+  let progressPage = 0
+  while (true) {
+    const from = progressPage * pageSize
+    const to = from + pageSize - 1
+    const { data, error } = await supabase
+      .from('user_progress')
+      .select('question_id, status')
+      .eq('user_id', userId)
+      .range(from, to)
 
-  if (progressError) {
-    throw progressError
+    if (error) {
+      throw error
+    }
+
+    if (data && data.length > 0) {
+      progressRows.push(...data)
+    }
+
+    if (!data || data.length < pageSize) {
+      break
+    }
+
+    progressPage += 1
   }
 
   const questionToLevel = new Map<string, string>()
@@ -128,7 +163,7 @@ export async function getLevelsProgress(userId: string): Promise<LevelProgress[]
     questionToLevel.set(question.id, question.unit_id)
   }
 
-  for (const row of progressRows || []) {
+  for (const row of progressRows) {
     const level = questionToLevel.get(row.question_id)
     if (!level) continue
     const entry = levelMap.get(level)
@@ -154,10 +189,22 @@ export async function updateProgress(
   questionId: string,
   isCorrect: boolean,
   answer?: string,
-  unitId?: string,
-  categoryId?: string
 ): Promise<{ success: boolean; error?: any }> {
   const supabase = getSupabaseAdmin()
+
+  const { data: questionMeta, error: questionMetaError } = await supabase
+    .from('questions')
+    .select('unit_id, category_id')
+    .eq('id', questionId)
+    .maybeSingle()
+
+  if (questionMetaError) {
+    console.error('Error fetching question metadata:', questionMetaError)
+    return { success: false, error: questionMetaError }
+  }
+
+  const resolvedUnitId = questionMeta?.unit_id ?? null
+  const resolvedCategoryId = questionMeta?.category_id ?? null
 
   const { data: existing } = await supabase
     .from('user_progress')
@@ -178,6 +225,8 @@ export async function updateProgress(
         attempts: existing.attempts + 1,
         last_attempted: now,
         last_answer: answer || existing.last_answer,
+        unit_id: resolvedUnitId ?? existing.unit_id ?? null,
+        category_id: resolvedCategoryId ?? existing.category_id ?? null,
       })
       .eq('user_id', userId)
       .eq('question_id', questionId)
@@ -198,8 +247,8 @@ export async function updateProgress(
   const { error: insertError } = await supabase.from('user_progress').insert({
     user_id: userId,
     question_id: questionId,
-    unit_id: unitId || null,
-    category_id: categoryId || null,
+    unit_id: resolvedUnitId,
+    category_id: resolvedCategoryId,
     status: isCorrect ? 'passed' : 'failed',
     attempts: 1,
     last_attempted: now,

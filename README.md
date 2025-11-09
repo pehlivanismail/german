@@ -12,6 +12,31 @@ A web application for learning German vocabulary with interactive fill-in-the-bl
 - ✅ Automatic retry for incorrect answers
 - ✅ Beautiful, modern UI with Tailwind CSS
 
+## Progress Maintenance (Supabase)
+
+Two helper scripts make it easy to clear and reseed quiz progress while debugging Supabase sync issues. Both scripts read `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` from `.env.local`, so make sure those values are present before running them.
+
+### Reset all progress
+
+```bash
+npm run progress:reset
+```
+
+This deletes every row in `user_progress` and prints how many records were removed.
+
+### Seed sample progress for a user
+
+```bash
+npm run progress:seed -- --email=user@example.com --level=B1-L3 --passed=5 --failed=1
+```
+
+- `--email` (required): Supabase auth email to update  
+- `--level` (required): Unit id such as `A1-L2` or `B1-L3`  
+- `--passed` (default 5): Number of questions to mark as passed  
+- `--failed` (default 0): Number of questions to mark as failed  
+
+The script removes any existing progress for the selected user and level, then inserts fresh rows so the levels page and quiz screens can be verified immediately.
+
 ## Setup Instructions
 
 ### 1. Install Dependencies
