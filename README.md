@@ -200,6 +200,8 @@ See `database/migrations/README.md` for detailed setup instructions.
 
 ## Project Structure
 
+
+
 ```
 german/
 ├── app/
